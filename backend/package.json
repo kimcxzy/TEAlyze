@@ -1,0 +1,24 @@
+{
+  "name": "tealyze-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API do TEAlyze — fala com o SQL Server (Docker) e serve o app Expo",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/scripts/seed.js",
+    "check-db": "node src/scripts/checkDb.js",
+    "test": "node test/smoke.js && node test/seed.js && node test/ocr.js && node test/summary.js",
+    "test-ocr": "node src/scripts/testOcr.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "2.8.5",
+    "dotenv": "16.4.5",
+    "express": "4.21.2",
+    "mssql": "11.0.1"
+  }
+}

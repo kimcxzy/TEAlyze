@@ -1,0 +1,27 @@
+node_modules/
+.expo/
+.metro-cache/
+backend/.env
+backend/uploads/*
+!backend/uploads/posts/.gitkeep
+!backend/uploads/laudos/.gitkeep
+
+node_modules-sdk57-backup/
+
+# Configurações locais
+.env
+**/.env
+
+# Arquivos temporários
+.gradle/
+**/.gradle/
+.expo/
+dist/
+build/
+
+# Logs
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db

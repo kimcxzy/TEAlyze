@@ -1,0 +1,75 @@
+services:
+  # ---------------------------------------------------------------------
+  # Banco de dados — mesma imagem e mesmas variáveis do container SQL_HAS
+  # que você já usava (senha, collation e porta 1433 publicada).
+  # ---------------------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: tealyze_sqlserver
+    user: mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "*123456HAS*"
+      SQLCOLLATION: "Latin1_General_CS_AI"
+      TZ: "America/Sao_Paulo"
+    ports:
+      # Porta no SEU computador (a do container continua 1433). Se a 1433 já estiver
+      # ocupada, suba com:  $env:SQLSERVER_HOST_PORT=1434; docker compose up -d --build
+      - "${SQLSERVER_HOST_PORT:-1433}:1433"
+    volumes:
+      - tealyze_mssql_data:/var/opt/mssql
+    healthcheck:
+      # As imagens novas do SQL Server 2019 trazem o sqlcmd em /opt/mssql-tools18
+      # (exige -C para aceitar o certificado); as antigas, em /opt/mssql-tools.
+      # O teste procura nos dois lugares.
+      test:
+        [
+          "CMD-SHELL",
+          "S=/opt/mssql-tools18/bin/sqlcmd; O='-C'; [ -x $$S ] || { S=/opt/mssql-tools/bin/sqlcmd; O=''; }; $$S -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" $$O -b -Q 'SELECT 1' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------
+  # API — cria o database, aplica database/*.sql e serve o app Expo.
+  # ---------------------------------------------------------------------
+  backend:
+    build: ./backend
+    container_name: tealyze_backend
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      PORT: "3000"
+      DB_HOST: "sqlserver"
+      DB_PORT: "1433"
+      DB_USER: "sa"
+      DB_PASSWORD: "*123456HAS*"
+      DB_NAME: "TEALYZE"
+      DB_ENCRYPT: "false"
+      DB_TRUST_CERT: "true"
+      DB_RUN_MIGRATIONS: "true"
+      DB_RUN_SEED: "true"
+      DB_SQL_DIR: "/app/database"
+      UPLOADS_DIR: "/app/uploads"
+      TZ: "America/Sao_Paulo"
+      # Opcional: OCR de laudo por IA. Padrão = Google Gemini (plano gratuito).
+      # Crie um arquivo .env ao lado deste docker-compose.yml com OCR_API_KEY=...
+      # (chave grátis em aistudio.google.com/apikey). Vazio = sem leitura por IA.
+      OCR_API_KEY: "${OCR_API_KEY:-}"
+      OCR_PROVIDER: "${OCR_PROVIDER:-}"
+      OCR_API_URL: "${OCR_API_URL:-}"
+      OCR_MODEL: "${OCR_MODEL:-}"
+    ports:
+      - "3000:3000"
+    volumes:
+      # Scripts SQL em modo leitura + uploads persistidos no host
+      - ./database:/app/database:ro
+      - ./backend/uploads:/app/uploads
+    restart: unless-stopped
+
+volumes:
+  tealyze_mssql_data:
